@@ -37,7 +37,7 @@ int verbose;
 //TODO: Add your own Branch Predictor data structures here
 //
 #define MAX_BYTE 13 * (1 << 10) // 13kB
-struct gshare_struct {
+struct gshare {
   int ghistory_reg;
   int mask;
   int index; // last access index
@@ -64,7 +64,7 @@ init_predictor()
     case STATIC:
       break;
     case GSHARE:
-      gshare_struct gshare;
+      struct gshare gshare;
       gshare.mask = (1 << ghistoryBits) - 1;
       gshare.ghistory_reg = 0; // init to NOTTAKEN
       // init gshare BHT to WN
