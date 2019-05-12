@@ -67,4 +67,6 @@ uint8_t make_prediction(uint32_t pc);
 //
 void train_predictor(uint32_t pc, uint8_t outcome);
 
+char read_BHT(char *BHT, int index);
+void write_BHT(char *BHT, int index, int dir);
 #endif

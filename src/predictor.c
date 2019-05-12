@@ -36,12 +36,12 @@ int verbose;
 //
 //TODO: Add your own Branch Predictor data structures here
 //
-const int MAX_BYTE = 13 * (1 << 10); // 13kB
+#define MAX_BYTE 13 * (1 << 10) // 13kB
 struct gshare {
   int ghistory_reg;
   int mask;
   int index; // last access index
-  int pred; // last prediction result
+  char pred; // last prediction result
   char gshare_BHT[MAX_BYTE];
 } gshare;
 
@@ -64,7 +64,7 @@ init_predictor()
     case STATIC:
       break;
     case GSHARE:
-      gshare.mask = (1 << gshare.ghistoryBits) - 1;
+      gshare.mask = (1 << ghistoryBits) - 1;
       gshare.ghistory_reg = 0; // init to NOTTAKEN
       // init gshare BHT to WN
       for (int i = 0; i < MAX_BYTE; ++i)
@@ -95,9 +95,9 @@ make_prediction(uint32_t pc)
     case GSHARE:
       // predict
       gshare.index = (gshare.ghistory_reg ^ pc) & gshare.mask;
-      gshare.pred = read_BHT(gshare.ghistory_BHT, gshare.index);
+      gshare.pred = read_BHT(gshare.gshare_BHT, gshare.index);
       // update ghistory register
-      gshare.ghistory_reg = gshare.ghistory_reg << 1 | pred;
+      gshare.ghistory_reg = gshare.ghistory_reg << 1 | gshare.pred;
       return gshare.pred >= WT;
     case TOURNAMENT:
     case CUSTOM:
@@ -125,10 +125,10 @@ train_predictor(uint32_t pc, uint8_t outcome)
     case GSHARE:
       // taken and BHT does not reach ST
       if (outcome == TAKEN && gshare.pred != ST)
-        write_BHT(gshare.ghistory_BHT, gshare.index, TAKEN);
+        write_BHT(gshare.gshare_BHT, gshare.index, TAKEN);
       // not taken and BHT does not reach SN
       else if (outcome == NOTTAKEN && gshare.pred != SN)
-        write_BHT(gshare.ghistory_BHT, gshare.index, NOTTAKEN);
+        write_BHT(gshare.gshare_BHT, gshare.index, NOTTAKEN);
       break;
     case TOURNAMENT:
     case CUSTOM:
@@ -140,7 +140,7 @@ train_predictor(uint32_t pc, uint8_t outcome)
 
 // Read the result of the 2-bit predictor from byte-based BHT
 //
-char read_BHT(int *BHT, int index) {
+char read_BHT(char *BHT, int index) {
   int pos = index >> 2; // divide by 4
   int offset = index & 0x3; // get the last two bit
   offset <<= 1; // time 2, get the offset in one byte
@@ -152,7 +152,7 @@ char read_BHT(int *BHT, int index) {
 // Update the element in BHT to a certain direction
 // If dir == TAKEN, ++. If dir == NOTTAKEN, --.
 //
-void write_BHT(int *BHT, int index, int dir) {
+void write_BHT(char *BHT, int index, int dir) {
   int pos = index >> 2; // divide by 4
   int offset = index & 0x3; // get the last two bit
   offset <<= 1; // time 2, get the offset in one byte
