@@ -216,7 +216,7 @@ train_predictor(uint32_t pc, uint8_t outcome)
       trn.ghistory_reg = trn.ghistory_reg << 1 | outcome;
       if (outcome == TAKEN && trn.gPred.pred != ST)
         write_BHT(trn.gPred.BHT, trn.gPred.index, 
-	  TAKEN);
+	        TAKEN);
       else if (outcome == NOTTAKEN && trn.gPred.pred != SN)
         write_BHT(trn.gPred.BHT, trn.gPred.index, 
           NOTTAKEN);
