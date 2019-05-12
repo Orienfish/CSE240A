@@ -95,9 +95,9 @@ make_prediction(uint32_t pc)
     case GSHARE:
       // predict
       gshare.index = (gshare.ghistory_reg ^ pc) & gshare.mask;
+      // printf("pc: %x, history: %x, index: %d\r\n", pc, 
+	// gshare.ghistory_reg, gshare.index);
       gshare.pred = read_BHT(gshare.gshare_BHT, gshare.index);
-      // update ghistory register
-      gshare.ghistory_reg = gshare.ghistory_reg << 1 | gshare.pred;
       return gshare.pred >= WT;
     case TOURNAMENT:
     case CUSTOM:
@@ -129,6 +129,9 @@ train_predictor(uint32_t pc, uint8_t outcome)
       // not taken and BHT does not reach SN
       else if (outcome == NOTTAKEN && gshare.pred != SN)
         write_BHT(gshare.gshare_BHT, gshare.index, NOTTAKEN);
+      // update ghistory register
+      gshare.ghistory_reg = gshare.ghistory_reg << 1 | outcome;
+      // printf("after shift history: %x\r\n", gshare.ghistory_reg);
       break;
     case TOURNAMENT:
     case CUSTOM:
@@ -144,8 +147,8 @@ char read_BHT(char *BHT, int index) {
   int pos = index >> 2; // divide by 4
   int offset = index & 0x3; // get the last two bit
   offset <<= 1; // time 2, get the offset in one byte
-  int pred = (int)((BHT[pos] >> offset) & 0x3);
-  printf("read byte: %2x, pred: %1x\r\n", BHT[pos], pred);
+  char pred = (char)((BHT[pos] >> offset) & 0x3);
+  // printf("read byte: 0x%02x, offset: %d, pred: 0x%1x\r\n", BHT[pos], offset, pred);
   return pred;
 }
 
@@ -156,11 +159,11 @@ void write_BHT(char *BHT, int index, int dir) {
   int pos = index >> 2; // divide by 4
   int offset = index & 0x3; // get the last two bit
   offset <<= 1; // time 2, get the offset in one byte
-  printf("before write byte: %2x\r\n", BHT[pos]);
+  // printf("offset: %d, before write byte: 0x%02x\r\n", offset, BHT[pos]);
   if (dir == TAKEN)
     BHT[pos] += 1 << offset;
   else
     BHT[pos] -= 1 << offset;
-  printf("after write byte: %2x\r\n", BHT[pos]);
+  // printf("offset: %d, after write byte: 0x%02x\r\n", offset, BHT[pos]);
   return;
 }
