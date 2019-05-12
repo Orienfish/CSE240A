@@ -43,7 +43,7 @@ struct gshare {
   int index; // last access index
   char pred; // last prediction result
   char BHT[MAX_BYTE];
-};
+} gshare;
 
 
 
@@ -64,7 +64,6 @@ init_predictor()
     case STATIC:
       break;
     case GSHARE:
-      struct gshare gshare;
       gshare.mask = (1 << ghistoryBits) - 1;
       gshare.ghistory_reg = 0; // init to NOTTAKEN
       // init gshare BHT to WN
