@@ -36,7 +36,7 @@ int verbose;
 //
 //TODO: Add your own Branch Predictor data structures here
 //
-#define MAX_BYTE 13 * (1 << 10) // 13kB
+#define MAX_BYTE (1 << 11) // 2kB->16kbit->2^13 entries
 struct gshare {
   int ghistory_reg;
   int mask;
