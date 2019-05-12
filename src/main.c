@@ -120,7 +120,7 @@ main(int argc, char *argv[])
       mispredictions++;
     }
     if (verbose != 0) {
-      printf ("%d\n", prediction);
+      printf ("%d %d\n", prediction, outcome);
     }
 
     // Train the predictor
