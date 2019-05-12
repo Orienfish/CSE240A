@@ -41,7 +41,7 @@ struct gshare {
   int ghistory_reg;
   int mask;
   int index; // last access index
-  char pred; // last prediction result
+  char pred; // last 2-bit prediction result
   char BHT[MAX_BYTE];
 } gshare;
 
@@ -99,7 +99,7 @@ make_prediction(uint32_t pc)
         printf("pc: %x, history: %x, index: %d\r\n", pc, 
 	        gshare.ghistory_reg, gshare.index);
       gshare.pred = read_BHT(gshare.BHT, gshare.index);
-      return gshare.pred >= WT;
+      return gshare.pred >> 1; // prediction is uppermost bit
     case TOURNAMENT:
     case CUSTOM:
     default:
