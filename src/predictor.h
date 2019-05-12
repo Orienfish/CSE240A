@@ -38,6 +38,19 @@ extern const char *bpName[];
 #define WT  2			// predict T, weak taken
 #define ST  3			// predict T, strong taken
 
+// Definitions for the max size of Branch History Tables
+#define GSHARE_BHT_SIZE_BYTE (1 << 11) // 2^11kB->2^14kbit->2bit*2^13 entries
+#define CHOOSER_SIZE_BYTE (1 << 7) // 128Byte->1kbit->2bit*512entries
+#define GLOBAL_SIZE_BYTE (1 << 7) // 128Byte->1kbit->2bit*512entries
+#define LOCAL_HISTORY_SIZE_WORD (1 << 10) // 2^11kB->2^14kbit->
+										  // ($lhistoryBits)bit*2^10entries
+#define LOCAL_PREDICTOR_SIZE_BYTE (1 << 8) // 256Byte->2kbit->2bit*2^10entries
+
+// Definitions for 2-bit chooser
+#define SGB  0			// predict GLOBAL, strong global
+#define WGB  1			// predict GLOBAL, weak global
+#define WLC  2			// predict LOCAL, weak local
+#define SLC  3			// predict LOCAL, strong local
 //------------------------------------//
 //      Predictor Configuration       //
 //------------------------------------//
@@ -67,6 +80,6 @@ uint8_t make_prediction(uint32_t pc);
 //
 void train_predictor(uint32_t pc, uint8_t outcome);
 
-char read_BHT(char *BHT, int index);
-void write_BHT(char *BHT, int index, int dir);
+uint8_t read_BHT(uint8_t *BHT, uint32_t index);
+void write_BHT(uint8_t *BHT, uint32_t index, uint8_t dir);
 #endif

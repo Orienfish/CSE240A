@@ -36,16 +36,42 @@ int verbose;
 //
 //TODO: Add your own Branch Predictor data structures here
 //
-#define MAX_BYTE (1 << 11) // 2kB->16kbit->2^13 entries
 struct gshare {
-  int ghistory_reg;
-  int mask;
-  int index; // last access index
-  char pred; // last 2-bit prediction result
-  char BHT[MAX_BYTE];
+  uint32_t ghistory_reg;
+  uint32_t mask;
+  uint32_t index; // last access index
+  uint8_t pred; // last 2-bit prediction result
+  uint8_t BHT[GSHARE_BHT_SIZE_BYTE];
 } gshare;
 
+struct chooser {
+  uint32_t index; // last access index
+  uint32_t pred; // last 2-bit prediction result
+  uint8_t BHT[CHOOSER_SIZE_BYTE];
+};
 
+struct global_pred {
+  uint32_t index; // last addcess index
+  uint8_t pred; // last 2-bit prediction result
+  uint8_t BHT[GLOBAL_SIZE_BYTE];
+};
+
+struct local_pred {
+  uint32_t pred_index; // last access index of local predictor table
+  uint8_t pred; // last 2-bit prediction result
+  uint16_t hisTable[LOCAL_HISTORY_SIZE_WORD];
+  uint8_t preTable[LOCAL_PREDICTOR_SIZE_BYTE];
+};
+
+struct tournament {
+  uint32_t ghistory_reg;
+  uint32_t gmask;
+  uint32_t lmask;
+  uint32_t pcmask;
+  struct chooser chooser;
+  struct global_pred gPred;
+  struct local_pred lPred;
+} trn;
 
 //------------------------------------//
 //        Predictor Functions         //
@@ -56,9 +82,6 @@ struct gshare {
 void
 init_predictor()
 {
-  //
-  //TODO: Initialize Branch Predictor Data Structures
-  //
   // Make initialization based on the bpType
   switch (bpType) {
     case STATIC:
@@ -67,10 +90,27 @@ init_predictor()
       gshare.mask = (1 << ghistoryBits) - 1;
       gshare.ghistory_reg = 0; // init to NOTTAKEN
       // init gshare BHT to WN
-      for (int i = 0; i < MAX_BYTE; ++i)
+      for (int i = 0; i < GSHARE_BHT_SIZE_BYTE; ++i)
         gshare.BHT[i] = 0x55;
       break;
     case TOURNAMENT:
+      trn.gmask = (1 << ghistoryBits) - 1;
+      trn.lmask = (1 << lhistoryBits) - 1;
+      trn.pcmask =  (1 << pcIndexBits) - 1;
+      trn.ghistory_reg = 0; // init to NOTTAKEN
+      // init chooser to weakly global
+      for (int i = 0; i < CHOOSER_SIZE_BYTE; ++i)
+        trn.chooser.BHT[i] = 0x55;
+      // init global predictor to WN
+      for (int i = 0; i < GLOBAL_SIZE_BYTE; ++i)
+        trn.gPred.BHT[i] = 0x55;
+      // init local history table to NT
+      for (int i = 0; i < LOCAL_HISTORY_SIZE_WORD; ++i)
+        trn.lPred.hisTable[i] = 0;
+      // init local predictor table to WN
+      for (int i = 0; i < LOCAL_PREDICTOR_SIZE_BYTE; ++i)
+        trn.lPred.preTable[i] = 0x55;
+      break;
     case CUSTOM:
     default:
       break;
@@ -84,10 +124,6 @@ init_predictor()
 uint8_t
 make_prediction(uint32_t pc)
 {
-  //
-  //TODO: Implement prediction scheme
-  //
-
   // Make a prediction based on the bpType
   switch (bpType) {
     case STATIC:
@@ -101,6 +137,33 @@ make_prediction(uint32_t pc)
       gshare.pred = read_BHT(gshare.BHT, gshare.index);
       return gshare.pred >> 1; // prediction is uppermost bit
     case TOURNAMENT:
+      // Use local predictor
+      uint16_t hPattern = trn.lPred.hisTable[pc & trn.pcmask];
+      trn.lPred.pred_index = hPattern & trn.lmask;
+      if (verbose)
+        printf("local pc: %x, history: %02x, index: %d\r\n", pc, 
+          hpattern, trn.lPred.pred_index);
+      trn.lPred.pred = read_BHT(trn.lPred.preTable, 
+        trn.lPred.pred_index);
+
+      // Use global predictor
+      trn.gPred.index = trn.ghistory_reg & trn.gmask;
+      if (verbose)
+        printf("global pc: %x, history: %x, index: %d\r\n", pc, 
+          trn.ghistory_reg, trn.gPred.index);
+      trn.gPred.pred = read_BHT(trn.gPred.BHT, trn.gPred.index);
+
+      // chooser
+      trn.chooser.index = trn.ghistory_reg & trn.gmask;
+      printf("chooser pc: %x, history: %x, index: %d\r\n", pc, 
+          trn.ghistory_reg, trn.chooser.index);
+      trn.chooser.pred = read_BHT(trn.chooser.BHT, 
+        trn.chooser.index);
+      // choose predictor according to chooser
+      if (trn.chooser.pred >> 1) // choose local
+        return trn.lPred.pred >> 1;
+      else // choose global
+        return trn.gpred.pred >> 1;
     case CUSTOM:
     default:
       break;
@@ -117,9 +180,6 @@ make_prediction(uint32_t pc)
 void
 train_predictor(uint32_t pc, uint8_t outcome)
 {
-  //
-  //TODO: Implement Predictor training
-  //
   switch (bpType) {
     case STATIC:
       break;
@@ -137,20 +197,45 @@ train_predictor(uint32_t pc, uint8_t outcome)
           gshare.ghistory_reg);
       break;
     case TOURNAMENT:
+      // train local predictor
+      // update local history table
+      trn.lPred.hisTable[pc & trn.pcmask] = 
+        trn.lPred.hisTable[pc & trn.pcmask] << 1 | outcome;
+      // update global predictor table
+      trn.ghistory_reg = trn.ghistory_reg << 1 | outcome;
+      if (outcome == TAKEN && trn.lPred.pred != ST)
+        write_BHT(trn.lPred.preTable, trn.lPred.pred_index, 
+          TAKEN);
+      else if (outcome == NOTTAKEN && trn.lPred.pred != SN)
+        write_BHT(trn.lPred.preTable, trn.lPred.pred_index, 
+          NOTTAKEN);
+      // update chooser
+      bool local_correct = (trn.lPred.pred >> 1 == outcome);
+      bool global_correct = (trn.gPred.pred >> 1 == outcome);
+      // if local is correct and chooser pred is not SLC
+      if (local_correct > global_corrent && 
+        trn.chooser.pred != SLC)
+        write_BHT(trn.chooser.BHT, trn.chooser.index,
+          SLC >> 1);
+      // else if global is correct and chooser pred is not SGB
+      else if (global_correct > local_correct &&
+        trn.chooser.pred != SGB)
+        write_BHT(trn.chooser.BHT, trn.chooser.index,
+          SGB >> 1);
+      break;
     case CUSTOM:
     default:
       break;
   }
-
+  return;
 }
 
 // Read the result of the 2-bit predictor from byte-based BHT
-//
-char read_BHT(char *BHT, int index) {
-  int pos = index >> 2; // divide by 4
-  int offset = index & 0x3; // get the last two bit
+uint8_t read_BHT(uint8_t *BHT, uint32_t index) {
+  uint32_t pos = index >> 2; // divide by 4
+  uint32_t offset = index & 0x3; // get the last two bit
   offset <<= 1; // time 2, get the offset in one byte
-  char pred = (char)((BHT[pos] >> offset) & 0x3);
+  uint8_t pred = (uint8_t)((BHT[pos] >> offset) & 0x3);
   if (verbose)
     printf("read byte: 0x%02x, offset: %d, pred: 0x%1x\r\n", 
       BHT[pos], offset, pred);
@@ -160,9 +245,9 @@ char read_BHT(char *BHT, int index) {
 // Update the element in BHT to a certain direction
 // If dir == TAKEN, ++. If dir == NOTTAKEN, --.
 //
-void write_BHT(char *BHT, int index, int dir) {
-  int pos = index >> 2; // divide by 4
-  int offset = index & 0x3; // get the last two bit
+void write_BHT(uint8_t *BHT, uint32_t index, uint8_t dir) {
+  uint32_t pos = index >> 2; // divide by 4
+  uint32_t offset = index & 0x3; // get the last two bit
   offset <<= 1; // time 2, get the offset in one byte
   if (verbose)
     printf("offset: %d, before write byte: 0x%02x\r\n", 
