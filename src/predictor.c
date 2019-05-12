@@ -136,13 +136,13 @@ make_prediction(uint32_t pc)
 	        gshare.ghistory_reg, gshare.index);
       gshare.pred = read_BHT(gshare.BHT, gshare.index);
       return gshare.pred >> 1; // prediction is uppermost bit
-    case TOURNAMENT:
+    case TOURNAMENT:;
       // Use local predictor
       uint16_t hPattern = trn.lPred.hisTable[pc & trn.pcmask];
       trn.lPred.pred_index = hPattern & trn.lmask;
       if (verbose)
         printf("local pc: %x, history: %02x, index: %d\r\n", pc, 
-          hpattern, trn.lPred.pred_index);
+          hPattern, trn.lPred.pred_index);
       trn.lPred.pred = read_BHT(trn.lPred.preTable, 
         trn.lPred.pred_index);
 
@@ -155,7 +155,8 @@ make_prediction(uint32_t pc)
 
       // chooser
       trn.chooser.index = trn.ghistory_reg & trn.gmask;
-      printf("chooser pc: %x, history: %x, index: %d\r\n", pc, 
+      if (verbose)
+      	printf("chooser pc: %x, history: %x, index: %d\r\n", pc, 
           trn.ghistory_reg, trn.chooser.index);
       trn.chooser.pred = read_BHT(trn.chooser.BHT, 
         trn.chooser.index);
@@ -163,7 +164,7 @@ make_prediction(uint32_t pc)
       if (trn.chooser.pred >> 1) // choose local
         return trn.lPred.pred >> 1;
       else // choose global
-        return trn.gpred.pred >> 1;
+        return trn.gPred.pred >> 1;
     case CUSTOM:
     default:
       break;
@@ -199,21 +200,33 @@ train_predictor(uint32_t pc, uint8_t outcome)
     case TOURNAMENT:
       // train local predictor
       // update local history table
+      if (verbose) printf("Train local\r\n");  
       trn.lPred.hisTable[pc & trn.pcmask] = 
         trn.lPred.hisTable[pc & trn.pcmask] << 1 | outcome;
-      // update global predictor table
-      trn.ghistory_reg = trn.ghistory_reg << 1 | outcome;
+      // update local predictor table
       if (outcome == TAKEN && trn.lPred.pred != ST)
         write_BHT(trn.lPred.preTable, trn.lPred.pred_index, 
           TAKEN);
       else if (outcome == NOTTAKEN && trn.lPred.pred != SN)
         write_BHT(trn.lPred.preTable, trn.lPred.pred_index, 
           NOTTAKEN);
+           
+      // update global predictor table
+      if (verbose) printf("Train global\r\n");
+      trn.ghistory_reg = trn.ghistory_reg << 1 | outcome;
+      if (outcome == TAKEN && trn.gPred.pred != ST)
+        write_BHT(trn.gPred.BHT, trn.gPred.index, 
+	  TAKEN);
+      else if (outcome == NOTTAKEN && trn.gPred.pred != SN)
+        write_BHT(trn.gPred.BHT, trn.gPred.index, 
+          NOTTAKEN);
+      
       // update chooser
-      bool local_correct = (trn.lPred.pred >> 1 == outcome);
-      bool global_correct = (trn.gPred.pred >> 1 == outcome);
+      if (verbose) printf("Train chooser\r\n");
+      uint8_t local_correct = ((trn.lPred.pred >> 1) == outcome);
+      uint8_t global_correct = ((trn.gPred.pred >> 1) == outcome);
       // if local is correct and chooser pred is not SLC
-      if (local_correct > global_corrent && 
+      if (local_correct > global_correct && 
         trn.chooser.pred != SLC)
         write_BHT(trn.chooser.BHT, trn.chooser.index,
           SLC >> 1);
