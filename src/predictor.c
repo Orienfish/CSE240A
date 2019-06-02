@@ -147,9 +147,9 @@ init_predictor()
       for (int i = 0; i < CUSTOM_GSHARE_SIZE_BYTE; ++i)
         pct.cgshare.BHT[i] = 0x55;
       pct.cchooser.mask = (1 << CUSTOM_CHOOSER_BITS) - 1;
-      // init chooser to weakly gshare
-      for (int i = 0; i < CHOOSER_SIZE_BYTE; ++i)
-        trn.chooser.BHT[i] = 0x55;
+      // init chooser to weakly perceptron
+      for (int i = 0; i < CUSTOM_CHOOSER_SIZE_BYTE; ++i)
+        pct.cchooser.BHT[i] = 0xaa;
       break;
     default:
       break;
@@ -339,7 +339,7 @@ train_predictor(uint32_t pc, uint8_t outcome)
         write_BHT(pct.cchooser.BHT, pct.cchooser.index,
           SPC >> 1);
       // else if global is correct and chooser pred is not SGB
-      else if (gshare_correct > percepron_correct &&
+      else if (gshare_correct > perceptron_correct &&
         pct.cchooser.pred != SGS)
         write_BHT(pct.cchooser.BHT, pct.cchooser.index,
           SGS >> 1);
