@@ -47,11 +47,11 @@ extern const char *bpName[];
 #define LOCAL_HISTORY_SIZE_WORD (1 << 10) // 2^11kB->2^14kbit->
 										  // ($lhistoryBits)bit*2^10entries
 #define LOCAL_PREDICTOR_SIZE_BYTE (1 << 8) // 256Byte->2kbit->2bit*2^10entries
-#define PERCEPTRON_PC_BITS 6
-#define PERCEPTRON_PC_INDEX_SIZE (1 << 6)
-#define PERCEPTRON_BHR_BITS 15 // 15 BHT and 1 for intercept
+#define PERCEPTRON_PC_BITS 7
+#define PERCEPTRON_PC_INDEX_SIZE (1 << 7)
+#define PERCEPTRON_BHR_BITS 35 // 15 BHT and 1 for intercept
 #define INFER_THRESHOLD 0
-#define TRAIN_THRESHOLD 100
+#define TRAIN_THRESHOLD 20
 #define MAX_FP 127 // max for one signed byte
 #define MIN_FP -127 // min for one signed byte
 #define CUSTOM_GSHARE_SIZE_BYTE (1 << 8) // 2^8B->2^11bit->2bit*2^10entries

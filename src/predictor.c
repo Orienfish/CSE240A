@@ -90,12 +90,12 @@ struct tournament {
 struct perceptron {  
   uint32_t ghistory_reg;
   uint32_t gmask; // will only use lower PERCEPTRON_BHR_BITS
-  uint32_t pcmask;/
+  uint32_t pcmask;
   int res;
   // add one for the intercept
   int8_t pctTable[PERCEPTRON_PC_INDEX_SIZE][PERCEPTRON_BHR_BITS + 1];
-//  struct cgshare cgshare;
-//  struct cchooser cchooser;
+  //  struct cgshare cgshare;
+  //  struct cchooser cchooser;
 } pct;
 
 //------------------------------------//
