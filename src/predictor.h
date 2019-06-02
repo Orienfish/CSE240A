@@ -48,7 +48,7 @@ extern const char *bpName[];
 #define PERCEPTRON_PC_BITS 8
 #define PERCEPTRON_PC_INDEX_SIZE (1 << 8)
 #define PERCEPTRON_BHR_BITS 32
-#define THRESHOLD 25
+#define THRESHOLD 40
 // Definitions for 2-bit chooser
 #define SGB  0			// predict GLOBAL, strong global
 #define WGB  1			// predict GLOBAL, weak global

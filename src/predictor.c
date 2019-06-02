@@ -328,10 +328,10 @@ void train_pct(uint32_t hisReg, int8_t * fp,
   		fp[i]++;
     else if (outcome && !bit && fp[i] > -127)
     	fp[i]--;
-    else if (!outcome && bit && fp[i] > -127)
-    	fp[i]--;
-    else if (!outcome && !bit && fp[i] < 127)
-    	fp[i]++;
+    //else if (!outcome && bit && fp[i] > -127)
+    //	fp[i]--;
+    //else if (!outcome && !bit && fp[i] < 127)
+    //	fp[i]++;
     hisReg >>= 1;
 
     // if (verbose)
