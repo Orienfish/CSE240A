@@ -301,7 +301,7 @@ void write_BHT(uint8_t *BHT, uint32_t index, uint8_t dir) {
 int dot(uint32_t hisReg, int8_t * fp) {
   int res = 0;
   if (verbose)
-    printf("dot: hisReg: %x\r\n", hisReg);
+    printf("dot: hisReg: 0x%x\r\n", hisReg);
 
   for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
   	uint8_t bit = hisReg & 0x1; // get LSB
@@ -311,7 +311,7 @@ int dot(uint32_t hisReg, int8_t * fp) {
   	res += bit * fp[i];
   	hisReg >>= 1;
   }
-  if (verbose) printf("res: %x\r\n", res);
+  if (verbose) printf("res: %d\r\n", res);
   return res;
 }
 
@@ -328,11 +328,11 @@ void train_pct(uint32_t hisReg, int8_t * fp,
   		fp[i]++;
     else if (outcome && !bit)
     	fp[i]--;
-    else if (!outcome && bit)
-    	fp[i]--;
+    //else if (!outcome && bit)
+    //	fp[i]--;
     //else // (!outcome && !bit)
     hisReg >>= 1;
-    
+
     if (verbose)
       printf("After fp: %d\r\n", fp[i]);
   }
