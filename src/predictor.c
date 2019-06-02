@@ -254,7 +254,8 @@ train_predictor(uint32_t pc, uint8_t outcome)
           SGB >> 1);
       break;
     case CUSTOM:
-      if (pct.pred != outcome && abs(res) < TRAIN_THRESHOLD)
+      if ((pct.res > INFER_THRESHOLD) != outcome && 
+		      abs(pct.res) < TRAIN_THRESHOLD)
         train_pct(pct.ghistory_reg, pct.pctTable[pc & pct.pcmask], 
       	  outcome);
       pct.ghistory_reg = pct.ghistory_reg << 1 | outcome;
@@ -304,8 +305,8 @@ int dot(uint32_t hisReg, int8_t * fp) {
     printf("dot: hisReg: 0x%x\r\n", hisReg);
 
   for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
-  	uint8_t bit = hisReg & 0x1; // get LSB
-  	if (verbose)
+    uint8_t bit = hisReg & 0x1; // get LSB
+    if (verbose)
       printf("hisReg bit: %d, fp: %d\r\n", bit, fp[i]);
   	
     // CUSTOM_TAKEN = 1, CUSTOM_NOTTAKEN = -1
@@ -316,19 +317,21 @@ int dot(uint32_t hisReg, int8_t * fp) {
   	hisReg >>= 1;
   }
   res += fp[PERCEPTRON_BHR_BITS]; // add intercept
-  if (verbose) printf("res: %d\r\n", res);
+  if (verbose) 
+    printf("intercept: %d, res: %d\r\n", fp[PERCEPTRON_BHR_BITS], res);
   return res;
 }
 
 // Train perceptron
+// Only called when predict wrong
 //
 void train_pct(uint32_t hisReg, int8_t * fp, 
 	uint8_t outcome) {
   // t: custom taken or not taken
   int t = outcome? 1: -1;
   for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
-  	uint8_t bit = hisReg & 0x01;
-  	// if (verbose)
+    uint8_t bit = hisReg & 0x01;
+    // if (verbose)
     //  printf("hisReg bit: %d, fp: %d\r\n", bit, fp[i]);
 
     // x: custom taken or not taken
