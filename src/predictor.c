@@ -73,13 +73,29 @@ struct tournament {
   struct local_pred lPred;
 } trn;
 
+struct cgshare {
+  uint32_t mask;
+  uint32_t index; // last access index
+  uint8_t pred; // last 2-bit prediction result
+  uint8_t BHT[CUSTOM_GSHARE_SIZE_BYTE];
+};
+
+struct cchooser {
+  uint32_t mask;
+  uint32_t index; // last access index
+  uint32_t pred; // last 2-bit prediction result
+  uint8_t BHT[CUSTOM_CHOOSER_SIZE_BYTE];
+};
+
 struct perceptron {
   uint32_t ghistory_reg;
-  // uint32_t gmask; // 32 bit history
+  // uint32_t gmask; // will only use lower PERCEPTRON_BHR_BITS
   uint32_t pcmask;
+  int res;
   // add one for the intercept
   int8_t pctTable[PERCEPTRON_PC_INDEX_SIZE][PERCEPTRON_BHR_BITS + 1];
-  int res;
+  struct cgshare cgshare;
+  struct cchooser cchooser;
 } pct;
 
 //------------------------------------//
@@ -126,6 +142,15 @@ init_predictor()
       for (int i = 0; i < PERCEPTRON_PC_INDEX_SIZE; ++i)
       	for (int j = 0; j < PERCEPTRON_BHR_BITS + 1; ++j)
       		pct.pctTable[i][j] = 0;
+      pct.cgshare.mask = (1 << CUSTOM_GSHARE_BITS) - 1;
+      // init gshare BHT to WN
+      for (int i = 0; i < CUSTOM_GSHARE_SIZE_BYTE; ++i)
+        pct.cgshare.BHT[i] = 0x55;
+      pct.cchooser.mask = (1 << CUSTOM_CHOOSER_BITS) - 1;
+      // init chooser to weakly gshare
+      for (int i = 0; i < CHOOSER_SIZE_BYTE; ++i)
+        trn.chooser.BHT[i] = 0x55;
+      break;
     default:
       break;
   }
@@ -142,6 +167,8 @@ make_prediction(uint32_t pc)
   switch (bpType) {
     case STATIC:
       return TAKEN;
+/***********************************************************************
+***********************************************************************/
     case GSHARE:
       // predict
       gshare.index = (gshare.ghistory_reg ^ pc) & gshare.mask;
@@ -150,6 +177,8 @@ make_prediction(uint32_t pc)
 	        gshare.ghistory_reg, gshare.index);
       gshare.pred = read_BHT(gshare.BHT, gshare.index);
       return gshare.pred >> 1; // prediction is uppermost bit
+/***********************************************************************
+***********************************************************************/
     case TOURNAMENT:;
       // Use local predictor
       uint16_t hPattern = trn.lPred.hisTable[pc & trn.pcmask];
@@ -179,10 +208,34 @@ make_prediction(uint32_t pc)
         return trn.lPred.pred >> 1;
       else // choose global
         return trn.gPred.pred >> 1;
+/***********************************************************************
+***********************************************************************/
     case CUSTOM:;
+      // Use gshare
+      pct.cgshare.index = (pct.ghistory_reg ^ pc) & pct.cgshare.mask;
+      if (verbose)
+        printf("pc: %x, history: %x, index: %d\r\n", pc, 
+          pct.ghistory_reg, pct.cgshare.index);
+      pct.cgshare.pred = read_BHT(pct.cgshare.BHT, pct.cgshare.index);
+
+      // Use perceptron
       pct.res = dot(pct.ghistory_reg, 
       	pct.pctTable[pc & pct.pcmask]);
-      return (pct.res > INFER_THRESHOLD);
+
+      // Use chooser
+      pct.cchooser.index = pct.ghistory_reg & pct.cchooser.mask;
+      if (verbose)
+        printf("chooser pc: %x, history: %x, index: %d\r\n", pc, 
+          pct.ghistory_reg, pct.cchooser.index);
+      pct.cchooser.pred = read_BHT(pct.cchooser.BHT, 
+        pct.cchooser.index);
+
+      // choose predictor according to chooser
+      if (pct.cchooser.pred >> 1) // choose perceptron
+        return (pct.res > INFER_THRESHOLD);
+      else // choose gshare
+        return (pct.cgshare.pred >> 1);
+      break;
     default:
       break;
   }
@@ -201,6 +254,8 @@ train_predictor(uint32_t pc, uint8_t outcome)
   switch (bpType) {
     case STATIC:
       break;
+/***********************************************************************
+***********************************************************************/
     case GSHARE:
       // taken and BHT does not reach ST
       if (outcome == TAKEN && gshare.pred != ST)
@@ -214,6 +269,8 @@ train_predictor(uint32_t pc, uint8_t outcome)
         printf("after shift history: %x\r\n", 
           gshare.ghistory_reg);
       break;
+/***********************************************************************
+***********************************************************************/
     case TOURNAMENT:
       // train local predictor
       // update local history table
@@ -253,12 +310,42 @@ train_predictor(uint32_t pc, uint8_t outcome)
         write_BHT(trn.chooser.BHT, trn.chooser.index,
           SGB >> 1);
       break;
+/***********************************************************************
+***********************************************************************/
     case CUSTOM:
+      // update gshare
+      if (verbose) printf("Train gshare!\r\n");
+      // taken and BHT does not reach ST
+      if (outcome == TAKEN && pct.cgshare.pred != ST)
+        write_BHT(pct.cgshare.BHT, pct.cgshare.index, TAKEN);
+      // not taken and BHT does not reach SN
+      else if (outcome == NOTTAKEN && pct.cgshare.pred != SN)
+        write_BHT(pct.cgshare.BHT, pct.cgshare.index, NOTTAKEN);
+
+      // update perceptron
+      if (verbose) printf("Train perceptron\r\n");
       if ((pct.res > INFER_THRESHOLD) != outcome && 
 		      abs(pct.res) < TRAIN_THRESHOLD)
         train_pct(pct.ghistory_reg, pct.pctTable[pc & pct.pcmask], 
       	  outcome);
+
+      // update chooser
+      if (verbose) printf("Train chooser\r\n");
+      uint8_t perceptron_correct = ((pct.res > INFER_THRESHOLD) == outcome);
+      uint8_t gshare_correct = ((pct.cgshare.pred >> 1) == outcome);
+      // if local is correct and chooser pred is not SLC
+      if (perceptron_correct > gshare_correct && 
+        pct.cchooser.pred != SPC)
+        write_BHT(pct.cchooser.BHT, pct.cchooser.index,
+          SPC >> 1);
+      // else if global is correct and chooser pred is not SGB
+      else if (gshare_correct > percepron_correct &&
+        pct.cchooser.pred != SGS)
+        write_BHT(pct.cchooser.BHT, pct.cchooser.index,
+          SGS >> 1);
+
       pct.ghistory_reg = pct.ghistory_reg << 1 | outcome;
+      break;
     default:
       break;
   }
@@ -336,7 +423,10 @@ void train_pct(uint32_t hisReg, int8_t * fp,
 
     // x: custom taken or not taken
     int x = bit? 1: -1;
-    fp[i] += t * x;
+    if ((t * x) > 0 && fp[i] < MAX_FP)
+      fp[i] += t * x;
+    else if ((t * x) < 0 && fp[i] > MIN_FP)
+      fp[i] += t * x;
     hisReg >>= 1;
 
     // if (verbose)

@@ -47,16 +47,27 @@ extern const char *bpName[];
 #define LOCAL_HISTORY_SIZE_WORD (1 << 10) // 2^11kB->2^14kbit->
 										  // ($lhistoryBits)bit*2^10entries
 #define LOCAL_PREDICTOR_SIZE_BYTE (1 << 8) // 256Byte->2kbit->2bit*2^10entries
-#define PERCEPTRON_PC_BITS 9
-#define PERCEPTRON_PC_INDEX_SIZE (1 << 9)
-#define PERCEPTRON_BHR_BITS 24
+#define PERCEPTRON_PC_BITS 6
+#define PERCEPTRON_PC_INDEX_SIZE (1 << 6)
+#define PERCEPTRON_BHR_BITS 15 // 15 BHT and 1 for intercept
 #define INFER_THRESHOLD 0
-#define TRAIN_THRESHOLD 40
+#define TRAIN_THRESHOLD 100
+#define MAX_FP 127 // max for one signed byte
+#define MIN_FP -127 // min for one signed byte
+#define CUSTOM_GSHARE_SIZE_BYTE (1 << 8) // 2^8B->2^11bit->2bit*2^10entries
+#define CUSTOM_GSHARE_BITS 10
+#define CUSTOM_CHOOSER_SIZE_BYTE (1 << 8) // 2^8B->2^11bit->2bit*w^10entries
+#define CUSTOM_CHOOSER_BITS 10
 // Definitions for 2-bit chooser
 #define SGB  0			// predict GLOBAL, strong global
 #define WGB  1			// predict GLOBAL, weak global
 #define WLC  2			// predict LOCAL, weak local
 #define SLC  3			// predict LOCAL, strong local
+// Definitions for 2-bit chooser for custom predictor
+#define SGS  0			// predict GSHARE, strong gshare
+#define WGS  1			// predict GSHARE, weak gshare
+#define WPC  2			// predict PERCEPTRON, weak perceptron
+#define SPC  3			// predict PERCEPTRON, strong perceptron
 //------------------------------------//
 //      Predictor Configuration       //
 //------------------------------------//
@@ -91,4 +102,5 @@ void write_BHT(uint8_t *BHT, uint32_t index, uint8_t dir);
 int dot(uint32_t hisReg, int8_t * fp);
 void train_pct(uint32_t hisReg, int8_t * fp, 
 	uint8_t outcome);
+int abs(int res);
 #endif
