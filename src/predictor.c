@@ -73,6 +73,13 @@ struct tournament {
   struct local_pred lPred;
 } trn;
 
+struct perceptron {
+  uint32_t ghistory_reg;
+  // uint32_t gmask; // 32 bit history
+  uint32_t pcmask;
+  int8_t pctTable[PERCEPTRON_PC_INDEX_SIZE][PERCEPTRON_BHR_BITS];
+} pct;
+
 //------------------------------------//
 //        Predictor Functions         //
 //------------------------------------//
@@ -112,6 +119,11 @@ init_predictor()
         trn.lPred.preTable[i] = 0x55;
       break;
     case CUSTOM:
+      pct.pcmask = (1 << PERCPETRON_PC_BITS) - 1;
+      pct.ghistory_reg = 0;
+      for (int i = 0; i < PERCEPTRON_PC_INDEX_SIZE; ++i)
+      	for (int j = 0; j < PERCEPTRON_BHR_BITS; ++j)
+      		pct.pctTable[i][j] = 0;
     default:
       break;
   }
@@ -166,6 +178,12 @@ make_prediction(uint32_t pc)
       else // choose global
         return trn.gPred.pred >> 1;
     case CUSTOM:
+      int res = dot(pct.ghistory_reg, 
+      	pct.pctTable[pc & pct.pcmask]);
+      if (res > THRESHOLD)
+      	return TAKEN;
+      else
+      	return NOTTAKEN;
     default:
       break;
   }
@@ -237,6 +255,9 @@ train_predictor(uint32_t pc, uint8_t outcome)
           SGB >> 1);
       break;
     case CUSTOM:
+      train_pct(pct.ghistory_reg, pct.pctTable[pc & pct.pcmask], 
+      	outcome);
+      pct.ghistory_reg = pct.ghistory_reg << 1 | outcome;
     default:
       break;
   }
@@ -272,5 +293,34 @@ void write_BHT(uint8_t *BHT, uint32_t index, uint8_t dir) {
   if (verbose)
     printf("offset: %d, after write byte: 0x%02x\r\n", 
       offset, BHT[pos]);
+  return;
+}
+
+// Calculate the dot product
+//
+int dot(uint32_t hisReg, int8_t * fp]) {
+  int res = 0;
+  for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
+  	uint8_t bit = hisReg & 0x1; // get LSB
+  	res += bit * fp[i];
+  	hisReg >>= 1;
+  }
+  return res;
+}
+
+// Train perceptron
+//
+void train_pct(uint32_t hisReg, int8_t * fp, 
+	uint8_t outcome) {
+  for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
+  	uint8_t bit = hisReg & 0x01;
+  	if (outcome && bit)
+  		fp[i]++;
+    else if (outcome && !bit)
+    	fp[i]--;
+    else if (!outcome && bit)
+    	fp[i]--;
+    //else // (!outcome && !bit)
+  }
   return;
 }
