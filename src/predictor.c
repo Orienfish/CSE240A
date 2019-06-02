@@ -78,6 +78,7 @@ struct perceptron {
   // uint32_t gmask; // 32 bit history
   uint32_t pcmask;
   int8_t pctTable[PERCEPTRON_PC_INDEX_SIZE][PERCEPTRON_BHR_BITS];
+  uint8_t pred;
 } pct;
 
 //------------------------------------//
@@ -180,10 +181,8 @@ make_prediction(uint32_t pc)
     case CUSTOM:;
       int res = dot(pct.ghistory_reg, 
       	pct.pctTable[pc & pct.pcmask]);
-      if (res > THRESHOLD)
-      	return TAKEN;
-      else
-      	return NOTTAKEN;
+      pct.pred = (res > THRESHOLD);
+      return pct.pred;
     default:
       break;
   }
@@ -255,8 +254,9 @@ train_predictor(uint32_t pc, uint8_t outcome)
           SGB >> 1);
       break;
     case CUSTOM:
-      train_pct(pct.ghistory_reg, pct.pctTable[pc & pct.pcmask], 
-      	outcome);
+      if (pct.pred != outcome)
+        train_pct(pct.ghistory_reg, pct.pctTable[pc & pct.pcmask], 
+      	  outcome);
       pct.ghistory_reg = pct.ghistory_reg << 1 | outcome;
     default:
       break;
@@ -324,13 +324,13 @@ void train_pct(uint32_t hisReg, int8_t * fp,
   	// if (verbose)
     //  printf("hisReg bit: %d, fp: %d\r\n", bit, fp[i]);
 
-  	if (outcome && bit)
+  	if (outcome && bit && fp[i] < 127)
   		fp[i]++;
-    else if (outcome && !bit)
+    else if (outcome && !bit && fp[i] > -127)
     	fp[i]--;
-    else if (!outcome && bit)
+    else if (!outcome && bit && fp[i] > -127)
     	fp[i]--;
-    else // (!outcome && !bit)
+    else if (!outcome && !bit && fp[i] < 127)
     	fp[i]++;
     hisReg >>= 1;
 
