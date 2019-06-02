@@ -181,7 +181,10 @@ make_prediction(uint32_t pc)
     case CUSTOM:;
       int res = dot(pct.ghistory_reg, 
       	pct.pctTable[pc & pct.pcmask]);
-      pct.pred = (res > THRESHOLD);
+      if (res > THRESHOLD)
+      	pct.pred = TAKEN;
+      else
+      	pct.pred = NOTTAKEN;
       return pct.pred;
     default:
       break;
@@ -328,10 +331,10 @@ void train_pct(uint32_t hisReg, int8_t * fp,
   		fp[i]++;
     else if (outcome && !bit && fp[i] > -127)
     	fp[i]--;
-    //else if (!outcome && bit && fp[i] > -127)
-    //	fp[i]--;
-    //else if (!outcome && !bit && fp[i] < 127)
-    //	fp[i]++;
+    else if (!outcome && bit && fp[i] > -127)
+    	fp[i]--;
+    else if (!outcome && !bit && fp[i] < 127)
+    	fp[i]++;
     hisReg >>= 1;
 
     // if (verbose)
