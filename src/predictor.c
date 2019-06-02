@@ -181,10 +181,7 @@ make_prediction(uint32_t pc)
     case CUSTOM:;
       int res = dot(pct.ghistory_reg, 
       	pct.pctTable[pc & pct.pcmask]);
-      if (res > THRESHOLD)
-      	pct.pred = TAKEN;
-      else
-      	pct.pred = NOTTAKEN;
+      pct.pred = (res > THRESHOLD);
       return pct.pred;
     default:
       break;
