@@ -45,9 +45,9 @@ extern const char *bpName[];
 #define LOCAL_HISTORY_SIZE_WORD (1 << 10) // 2^11kB->2^14kbit->
 										  // ($lhistoryBits)bit*2^10entries
 #define LOCAL_PREDICTOR_SIZE_BYTE (1 << 8) // 256Byte->2kbit->2bit*2^10entries
-#define PERCEPTRON_PC_BITS 7
-#define PERCEPTRON_PC_INDEX_SIZE (1 << 7)
-#define PERCEPTRON_BHR_BITS 64
+#define PERCEPTRON_PC_BITS 9
+#define PERCEPTRON_PC_INDEX_SIZE (1 << 9)
+#define PERCEPTRON_BHR_BITS 16
 #define THRESHOLD 40
 // Definitions for 2-bit chooser
 #define SGB  0			// predict GLOBAL, strong global
