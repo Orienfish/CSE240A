@@ -321,20 +321,21 @@ void train_pct(uint32_t hisReg, int8_t * fp,
 	uint8_t outcome) {
   for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
   	uint8_t bit = hisReg & 0x01;
-  	if (verbose)
-      printf("hisReg bit: %d, fp: %d\r\n", bit, fp[i]);
+  	// if (verbose)
+    //  printf("hisReg bit: %d, fp: %d\r\n", bit, fp[i]);
 
   	if (outcome && bit)
   		fp[i]++;
     else if (outcome && !bit)
     	fp[i]--;
-    //else if (!outcome && bit)
-    //	fp[i]--;
-    //else // (!outcome && !bit)
+    else if (!outcome && bit)
+    	fp[i]--;
+    else // (!outcome && !bit)
+    	fp[i]++;
     hisReg >>= 1;
 
-    if (verbose)
-      printf("After fp: %d\r\n", fp[i]);
+    // if (verbose)
+    //  printf("After fp: %d\r\n", fp[i]);
   }
   return;
 }
