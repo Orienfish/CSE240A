@@ -85,4 +85,7 @@ void train_predictor(uint32_t pc, uint8_t outcome);
 
 uint8_t read_BHT(uint8_t *BHT, uint32_t index);
 void write_BHT(uint8_t *BHT, uint32_t index, uint8_t dir);
+int dot(uint32_t hisReg, int8_t * fp);
+void train_pct(uint32_t hisReg, int8_t * fp, 
+	uint8_t outcome);
 #endif

@@ -178,8 +178,7 @@ make_prediction(uint32_t pc)
       else // choose global
         return trn.gPred.pred >> 1;
     case CUSTOM:
-      int res = dot(pct.ghistory_reg, 
-      	pct.pctTable[pc & pct.pcmask]);
+      int res = dot(pct.ghistory_reg, pct.pctTable[pc & pct.pcmask]);
       if (res > THRESHOLD)
       	return TAKEN;
       else
@@ -298,7 +297,7 @@ void write_BHT(uint8_t *BHT, uint32_t index, uint8_t dir) {
 
 // Calculate the dot product
 //
-int dot(uint32_t hisReg, int8_t * fp]) {
+int dot(uint32_t hisReg, int8_t * fp) {
   int res = 0;
   for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
   	uint8_t bit = hisReg & 0x1; // get LSB
