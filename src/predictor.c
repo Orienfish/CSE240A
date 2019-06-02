@@ -119,7 +119,7 @@ init_predictor()
         trn.lPred.preTable[i] = 0x55;
       break;
     case CUSTOM:
-      pct.pcmask = (1 << PERCPETRON_PC_BITS) - 1;
+      pct.pcmask = (1 << PERCEPTRON_PC_BITS) - 1;
       pct.ghistory_reg = 0;
       for (int i = 0; i < PERCEPTRON_PC_INDEX_SIZE; ++i)
       	for (int j = 0; j < PERCEPTRON_BHR_BITS; ++j)
@@ -178,7 +178,7 @@ make_prediction(uint32_t pc)
       else // choose global
         return trn.gPred.pred >> 1;
     case CUSTOM:
-      int res = dot(pct.ghistory_reg, pct.pctTable[pc & pct.pcmask]);
+      int32_t res = dot(pct.ghistory_reg, pct.pctTable[pc & pct.pcmask]);
       if (res > THRESHOLD)
       	return TAKEN;
       else
