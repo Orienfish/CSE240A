@@ -177,8 +177,9 @@ make_prediction(uint32_t pc)
         return trn.lPred.pred >> 1;
       else // choose global
         return trn.gPred.pred >> 1;
-    case CUSTOM:
-      int32_t res = dot(pct.ghistory_reg, pct.pctTable[pc & pct.pcmask]);
+    case CUSTOM:;
+      int res = dot(pct.ghistory_reg, 
+      	pct.pctTable[pc & pct.pcmask]);
       if (res > THRESHOLD)
       	return TAKEN;
       else
@@ -299,11 +300,18 @@ void write_BHT(uint8_t *BHT, uint32_t index, uint8_t dir) {
 //
 int dot(uint32_t hisReg, int8_t * fp) {
   int res = 0;
+  if (verbose)
+    printf("dot: hisReg: %d\r\n", hisReg);
+
   for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
   	uint8_t bit = hisReg & 0x1; // get LSB
+  	if (verbose)
+      printf("hisReg bit: %d, fp: %d\r\n", bit, fp[i]);
+  	
   	res += bit * fp[i];
   	hisReg >>= 1;
   }
+  if (verbose) printf("res: %d\r\n", res);
   return res;
 }
 
@@ -313,6 +321,9 @@ void train_pct(uint32_t hisReg, int8_t * fp,
 	uint8_t outcome) {
   for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
   	uint8_t bit = hisReg & 0x01;
+  	if (verbose)
+      printf("hisReg bit: %d, fp: %d\r\n", bit, fp[i]);
+
   	if (outcome && bit)
   		fp[i]++;
     else if (outcome && !bit)
@@ -320,6 +331,8 @@ void train_pct(uint32_t hisReg, int8_t * fp,
     else if (!outcome && bit)
     	fp[i]--;
     //else // (!outcome && !bit)
+    if (verbose)
+      printf("After fp: %d\r\n", fp[i]);
   }
   return;
 }
