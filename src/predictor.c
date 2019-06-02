@@ -73,29 +73,29 @@ struct tournament {
   struct local_pred lPred;
 } trn;
 
-struct cgshare {
-  uint32_t mask;
-  uint32_t index; // last access index
-  uint8_t pred; // last 2-bit prediction result
-  uint8_t BHT[CUSTOM_GSHARE_SIZE_BYTE];
-};
+//struct cgshare {
+//  uint32_t mask;
+//  uint32_t index; // last access index
+//  uint8_t pred; // last 2-bit prediction result
+//  uint8_t BHT[CUSTOM_GSHARE_SIZE_BYTE];
+//};
 
-struct cchooser {
-  uint32_t mask;
-  uint32_t index; // last access index
-  uint32_t pred; // last 2-bit prediction result
-  uint8_t BHT[CUSTOM_CHOOSER_SIZE_BYTE];
-};
+//struct cchooser {
+//  uint32_t mask;
+//  uint32_t index; // last access index
+//  uint32_t pred; // last 2-bit prediction result
+//  uint8_t BHT[CUSTOM_CHOOSER_SIZE_BYTE];
+//};
 
-struct perceptron {
+struct perceptron {  
   uint32_t ghistory_reg;
-  // uint32_t gmask; // will only use lower PERCEPTRON_BHR_BITS
-  uint32_t pcmask;
+  uint32_t gmask; // will only use lower PERCEPTRON_BHR_BITS
+  uint32_t pcmask;/
   int res;
   // add one for the intercept
   int8_t pctTable[PERCEPTRON_PC_INDEX_SIZE][PERCEPTRON_BHR_BITS + 1];
-  struct cgshare cgshare;
-  struct cchooser cchooser;
+//  struct cgshare cgshare;
+//  struct cchooser cchooser;
 } pct;
 
 //------------------------------------//
@@ -142,14 +142,14 @@ init_predictor()
       for (int i = 0; i < PERCEPTRON_PC_INDEX_SIZE; ++i)
       	for (int j = 0; j < PERCEPTRON_BHR_BITS + 1; ++j)
       		pct.pctTable[i][j] = 0;
-      pct.cgshare.mask = (1 << CUSTOM_GSHARE_BITS) - 1;
+      //pct.cgshare.mask = (1 << CUSTOM_GSHARE_BITS) - 1;
       // init gshare BHT to WN
-      for (int i = 0; i < CUSTOM_GSHARE_SIZE_BYTE; ++i)
-        pct.cgshare.BHT[i] = 0x55;
-      pct.cchooser.mask = (1 << CUSTOM_CHOOSER_BITS) - 1;
+      //for (int i = 0; i < CUSTOM_GSHARE_SIZE_BYTE; ++i)
+      //  pct.cgshare.BHT[i] = 0x55;
+      //pct.cchooser.mask = (1 << CUSTOM_CHOOSER_BITS) - 1;
       // init chooser to weakly gshare
-      for (int i = 0; i < CHOOSER_SIZE_BYTE; ++i)
-        trn.chooser.BHT[i] = 0x55;
+      //for (int i = 0; i < CUSTOM_CHOOSER_SIZE_BYTE; ++i)
+      //  pct.cchooser.BHT[i] = 0x55;
       break;
     default:
       break;
@@ -212,29 +212,29 @@ make_prediction(uint32_t pc)
 ***********************************************************************/
     case CUSTOM:;
       // Use gshare
-      pct.cgshare.index = (pct.ghistory_reg ^ pc) & pct.cgshare.mask;
-      if (verbose)
-        printf("pc: %x, history: %x, index: %d\r\n", pc, 
-          pct.ghistory_reg, pct.cgshare.index);
-      pct.cgshare.pred = read_BHT(pct.cgshare.BHT, pct.cgshare.index);
+      //pct.cgshare.index = (pct.ghistory_reg ^ pc) & pct.cgshare.mask;
+      //if (verbose)
+      //  printf("pc: %x, history: %x, index: %d\r\n", pc, 
+      //    pct.ghistory_reg, pct.cgshare.index);
+      //pct.cgshare.pred = read_BHT(pct.cgshare.BHT, pct.cgshare.index);
 
       // Use perceptron
       pct.res = dot(pct.ghistory_reg, 
-      	pct.pctTable[pc & pct.pcmask]);
+      		pct.pctTable[pc & pct.pcmask]);
 
       // Use chooser
-      pct.cchooser.index = pct.ghistory_reg & pct.cchooser.mask;
-      if (verbose)
-        printf("chooser pc: %x, history: %x, index: %d\r\n", pc, 
-          pct.ghistory_reg, pct.cchooser.index);
-      pct.cchooser.pred = read_BHT(pct.cchooser.BHT, 
-        pct.cchooser.index);
+      //pct.cchooser.index = pct.ghistory_reg & pct.cchooser.mask;
+      //if (verbose)
+      //  printf("chooser pc: %x, history: %x, index: %d\r\n", pc, 
+      //    pct.ghistory_reg, pct.cchooser.index);
+      //pct.cchooser.pred = read_BHT(pct.cchooser.BHT, 
+      //  pct.cchooser.index);
 
       // choose predictor according to chooser
-      if (pct.cchooser.pred >> 1) // choose perceptron
+      //if (pct.cchooser.pred >> 1) // choose perceptron
         return (pct.res > INFER_THRESHOLD);
-      else // choose gshare
-        return (pct.cgshare.pred >> 1);
+      //else // choose gshare
+      //  return (pct.cgshare.pred >> 1);
       break;
     default:
       break;
@@ -314,13 +314,13 @@ train_predictor(uint32_t pc, uint8_t outcome)
 ***********************************************************************/
     case CUSTOM:
       // update gshare
-      if (verbose) printf("Train gshare!\r\n");
+      //if (verbose) printf("Train gshare!\r\n");
       // taken and BHT does not reach ST
-      if (outcome == TAKEN && pct.cgshare.pred != ST)
-        write_BHT(pct.cgshare.BHT, pct.cgshare.index, TAKEN);
+      //if (outcome == TAKEN && pct.cgshare.pred != ST)
+      //  write_BHT(pct.cgshare.BHT, pct.cgshare.index, TAKEN);
       // not taken and BHT does not reach SN
-      else if (outcome == NOTTAKEN && pct.cgshare.pred != SN)
-        write_BHT(pct.cgshare.BHT, pct.cgshare.index, NOTTAKEN);
+      //else if (outcome == NOTTAKEN && pct.cgshare.pred != SN)
+      //  write_BHT(pct.cgshare.BHT, pct.cgshare.index, NOTTAKEN);
 
       // update perceptron
       if (verbose) printf("Train perceptron\r\n");
@@ -330,19 +330,19 @@ train_predictor(uint32_t pc, uint8_t outcome)
       	  outcome);
 
       // update chooser
-      if (verbose) printf("Train chooser\r\n");
-      uint8_t perceptron_correct = ((pct.res > INFER_THRESHOLD) == outcome);
-      uint8_t gshare_correct = ((pct.cgshare.pred >> 1) == outcome);
+      //if (verbose) printf("Train chooser\r\n");
+      //uint8_t perceptron_correct = ((pct.res > INFER_THRESHOLD) == outcome);
+      //uint8_t gshare_correct = ((pct.cgshare.pred >> 1) == outcome);
       // if local is correct and chooser pred is not SLC
-      if (perceptron_correct > gshare_correct && 
-        pct.cchooser.pred != SPC)
-        write_BHT(pct.cchooser.BHT, pct.cchooser.index,
-          SPC >> 1);
+      //if (perceptron_correct > gshare_correct && 
+      //  pct.cchooser.pred != SPC)
+      //  write_BHT(pct.cchooser.BHT, pct.cchooser.index,
+      //    SPC >> 1);
       // else if global is correct and chooser pred is not SGB
-      else if (gshare_correct > percepron_correct &&
-        pct.cchooser.pred != SGS)
-        write_BHT(pct.cchooser.BHT, pct.cchooser.index,
-          SGS >> 1);
+      //else if (gshare_correct > percepron_correct &&
+      //  pct.cchooser.pred != SGS)
+      //  write_BHT(pct.cchooser.BHT, pct.cchooser.index,
+      //    SGS >> 1);
 
       pct.ghistory_reg = pct.ghistory_reg << 1 | outcome;
       break;
@@ -398,10 +398,10 @@ int dot(uint32_t hisReg, int8_t * fp) {
   	
     // CUSTOM_TAKEN = 1, CUSTOM_NOTTAKEN = -1
     if (bit)
-  	  res += fp[i];
+      res += fp[i];
     else
       res -= fp[i];
-  	hisReg >>= 1;
+    hisReg >>= 1;
   }
   res += fp[PERCEPTRON_BHR_BITS]; // add intercept
   if (verbose) 
