@@ -11,6 +11,7 @@
 #include "predictor.h"
 
 FILE *stream;
+FILE *res_f;
 char *buf = NULL;
 size_t len = 0;
 
@@ -51,6 +52,10 @@ handle_option(char *arg)
     bpType = CUSTOM;
   } else if (!strcmp(arg,"--verbose")) {
     verbose = 1;
+  } else if (!strncmp(arg,"--output:",9)){
+    char filename[20];
+    sscanf(arg+9,"%s", filename);
+    res_f = fopen(filename, "w");
   } else {
     return 0;
   }
@@ -109,6 +114,8 @@ main(int argc, char *argv[])
   uint32_t mispredictions = 0;
   uint32_t pc = 0;
   uint8_t outcome = NOTTAKEN;
+  float mis_p_rate[10000] = {0.0};
+  uint32_t idx = 0;
 
   // Reach each branch from the trace
   while (read_branch(&pc, &outcome)) {
@@ -125,15 +132,26 @@ main(int argc, char *argv[])
 
     // Train the predictor
     train_predictor(pc, outcome);
+
+    if (num_branches % 1000 == 0) {
+      mis_p_rate[idx++] = (float)mispredictions / (float)num_branches;
+      // printf("%d, %7.3f\r\n", idx, 1 - (float)mispredictions / (float)num_branches);
+    }
   }
 
   // Print out the mispredict statistics
   printf("Branches:        %10d\n", num_branches);
   printf("Incorrect:       %10d\n", mispredictions);
   float mispredict_rate = 100*((float)mispredictions / (float)num_branches);
-  printf("Misprediction Rate: %7.3f\n", mispredict_rate);
+  printf("Misprediction Rate: %f\n", mispredict_rate);
+
+  for (uint32_t i = 0; i < idx; ++i) {
+    fprintf(res_f, "%f ", mis_p_rate[i]);
+  }
+  fprintf(res_f, "\r\n");
 
   // Cleanup
+  fclose(res_f);
   fclose(stream);
   free(buf);
 

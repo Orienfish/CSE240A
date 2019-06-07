@@ -1,4 +1,4 @@
-make clean; make;
+make clean;make;
 bunzip2 -kc ../traces/fp_1.bz2 | ./predictor --custom;
 bunzip2 -kc ../traces/fp_2.bz2 | ./predictor --custom;
 bunzip2 -kc ../traces/int_1.bz2 | ./predictor --custom;
