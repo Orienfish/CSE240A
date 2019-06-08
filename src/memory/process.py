@@ -6,16 +6,17 @@ def read_data(file):
 	total_brch = 0
 	total_mis = 0
 	with open(file, "r") as f:
-		line = f.readline()
-		elem = line.strip().split(':')[1]
-		branch = int(elem.strip())
-		line = f.readline()
-		elem = line.strip().split(':')[1]
-		mis = int(elem.strip())
-		f.readline()
-		print branch, mis
-		total_brch += branch
-		total_mis += mis
+		for i in range(0, 6):
+			line = f.readline()
+			elem = line.strip().split(':')[1]
+			branch = int(elem.strip())
+			line = f.readline()
+			elem = line.strip().split(':')[1]
+			mis = int(elem.strip())
+			f.readline()
+			print branch, mis
+			total_brch += branch
+			total_mis += mis
 	misp_rate = total_mis / total_brch
 	print misp_rate
 	return misp_rate
