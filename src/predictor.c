@@ -89,9 +89,9 @@ struct cchooser {
   uint8_t BHT[CUSTOM_CHOOSER_SIZE_BYTE];
 };
 
-struct perceptron {
+struct perceptron {  
   uint32_t ghistory_reg;
-  // uint32_t gmask; // will only use lower PERCEPTRON_BHR_BITS
+  uint32_t gmask; // will only use lower PERCEPTRON_BHR_BITS
   uint32_t pcmask;
   int res;
   // add one for the intercept
@@ -222,7 +222,7 @@ make_prediction(uint32_t pc)
 
       // Use perceptron
       pct.res = dot(pct.ghistory_reg, 
-      	pct.pctTable[pc & pct.pcmask]);
+      		pct.pctTable[pc & pct.pcmask]);
 
       // Use chooser
       pct.cchooser.index = pct.ghistory_reg & pct.cchooser.mask;
@@ -400,10 +400,10 @@ int dot(uint32_t hisReg, int8_t * fp) {
   	
     // CUSTOM_TAKEN = 1, CUSTOM_NOTTAKEN = -1
     if (bit)
-  	  res += fp[i];
+      res += fp[i];
     else
       res -= fp[i];
-  	hisReg >>= 1;
+    hisReg >>= 1;
   }
   res += fp[ghistoryBits]; // add intercept
   if (verbose) 
