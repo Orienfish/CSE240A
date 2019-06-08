@@ -28,6 +28,8 @@ int lhistoryBits; // Number of bits used for Local History
 int pcIndexBits;  // Number of bits used for PC index
 int bpType;       // Branch Prediction Type
 int verbose;
+int gshareBits;  // In Custom predictor, # of bits for gshare
+int chooserBits; // In hybrid predictor, # of bits for chooser
 
 //------------------------------------//
 //      Predictor Data Structures     //
@@ -137,16 +139,16 @@ init_predictor()
         trn.lPred.preTable[i] = 0x55;
       break;
     case CUSTOM:
-      pct.pcmask = (1 << PERCEPTRON_PC_BITS) - 1;
+      pct.pcmask = (1 << pcIndexBits) - 1;
       pct.ghistory_reg = 0;
       for (int i = 0; i < PERCEPTRON_PC_INDEX_SIZE; ++i)
       	for (int j = 0; j < PERCEPTRON_BHR_BITS + 1; ++j)
       		pct.pctTable[i][j] = 0;
-      pct.cgshare.mask = (1 << CUSTOM_GSHARE_BITS) - 1;
+      pct.cgshare.mask = (1 << gshareBits) - 1;
       // init gshare BHT to WN
       for (int i = 0; i < CUSTOM_GSHARE_SIZE_BYTE; ++i)
         pct.cgshare.BHT[i] = 0x55;
-      pct.cchooser.mask = (1 << CUSTOM_CHOOSER_BITS) - 1;
+      pct.cchooser.mask = (1 << chooserBits) - 1;
       // init chooser to weakly perceptron
       for (int i = 0; i < CUSTOM_CHOOSER_SIZE_BYTE; ++i)
         pct.cchooser.BHT[i] = 0xaa;
@@ -391,7 +393,7 @@ int dot(uint32_t hisReg, int8_t * fp) {
   if (verbose)
     printf("dot: hisReg: 0x%x\r\n", hisReg);
 
-  for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
+  for (int i = 0; i < ghistoryBits; ++i) {
     uint8_t bit = hisReg & 0x1; // get LSB
     if (verbose)
       printf("hisReg bit: %d, fp: %d\r\n", bit, fp[i]);
@@ -403,9 +405,9 @@ int dot(uint32_t hisReg, int8_t * fp) {
       res -= fp[i];
   	hisReg >>= 1;
   }
-  res += fp[PERCEPTRON_BHR_BITS]; // add intercept
+  res += fp[ghistoryBits]; // add intercept
   if (verbose) 
-    printf("intercept: %d, res: %d\r\n", fp[PERCEPTRON_BHR_BITS], res);
+    printf("intercept: %d, res: %d\r\n", fp[ghistoryBits], res);
   return res;
 }
 
@@ -416,7 +418,7 @@ void train_pct(uint32_t hisReg, int8_t * fp,
 	uint8_t outcome) {
   // t: custom taken or not taken
   int t = outcome? 1: -1;
-  for (int i = 0; i < PERCEPTRON_BHR_BITS; ++i) {
+  for (int i = 0; i < ghistoryBits; ++i) {
     uint8_t bit = hisReg & 0x01;
     // if (verbose)
     //  printf("hisReg bit: %d, fp: %d\r\n", bit, fp[i]);
@@ -432,7 +434,7 @@ void train_pct(uint32_t hisReg, int8_t * fp,
     // if (verbose)
     //  printf("After fp: %d\r\n", fp[i]);
   }
-  fp[PERCEPTRON_BHR_BITS] += t;
+  fp[ghistoryBits] += t;
   return;
 }
 

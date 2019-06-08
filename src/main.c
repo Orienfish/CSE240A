@@ -48,8 +48,9 @@ handle_option(char *arg)
   } else if (!strncmp(arg,"--tournament:",13)) {
     bpType = TOURNAMENT;
     sscanf(arg+13,"%d:%d:%d", &ghistoryBits, &lhistoryBits, &pcIndexBits);
-  } else if (!strcmp(arg,"--custom")) {
+  } else if (!strncmp(arg,"--custom:", 9)) {
     bpType = CUSTOM;
+    sscanf(arg+9,"%d:%d:%d:%d", &pcIndexBits, &ghistoryBits, &gshareBits, &chooserBits);
   } else if (!strcmp(arg,"--verbose")) {
     verbose = 1;
   } else if (!strncmp(arg,"--output:",9)){
@@ -145,13 +146,15 @@ main(int argc, char *argv[])
   float mispredict_rate = 100*((float)mispredictions / (float)num_branches);
   printf("Misprediction Rate: %f\n", mispredict_rate);
 
-  for (uint32_t i = 0; i < idx; ++i) {
-    fprintf(res_f, "%f ", mis_p_rate[i]);
+  if (res_f != NULL) {
+    for (uint32_t i = 0; i < idx; ++i) {
+      fprintf(res_f, "%f ", mis_p_rate[i]);
+    }
+    fprintf(res_f, "\r\n");
+    fclose(res_f);
   }
-  fprintf(res_f, "\r\n");
 
   // Cleanup
-  fclose(res_f);
   fclose(stream);
   free(buf);
 
